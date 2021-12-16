@@ -9,24 +9,27 @@
 		::SET /P odrobu=Vnesi velikost v odstotkih (100 je A4, 141 je A3, 71 za A5)
 		SET odrobu=100
 		echo Velikost bo %odrobu% napram A4.
+		echo %1;
 	
 :: Za koliko pik naj se slike prekrivajo
 		::SET /P prekrivanje=Vnesi stevilo pikslov za prekrivanje (0 brez prekrivanja)
-		SET prekrivanje=0
+		SET prekrivanje=10
 		echo Prekrivanje bo %prekrivanje% pikslov.
 
 ::  !!!!!!!----------  WHERE IS YOUR PROGRAM?  ---------- !!!!!!!!!!!!!!!!!!!!!NEED INPUT 
 :: 	Lokacija programa Irfan View
-		set iview=C:\Programi\IrfanView				
-		set iviewDir=%iview:~0,2%						
+		set iview=C:\Programi\IrfanView
+		echo Lokacija iView programa je: %iview%.
+
+		set iviewDrive=%iview:~0,2%		
+		set IWinfo=C:\Programi\iVIewA4Slicer\IWINFO.txt
+		set IWinfo=%CD%\IWINFO.txt
+		i_view64.exe %img_loc% /info=%IWinfo%
 		
-:: 	Kam naj zapise zacasno datoteko (nepomembno za uporabnika)
-		SET IWinfo=%temp%\IWinfo.txt
-	
 :: 	WHERE ARE WE?- naj bo v isti mapi kot batch fajl. in naj bo samo ena!
 		SET img_dir=%~dp0.
-		SET img_loc=%img_dir%\test.jpg
-		SET img_drive=%CD:~0,2%					
+		SET img_loc=%img_dir%\%1
+		SET img_drive=%CD:~0,2%	
 
 
 		
@@ -36,18 +39,15 @@
 ::------- Pridobivanje informacije o sirini in visini -------
 ::	!!!!!!!! MUY IMPORTANTE
 :: Zapiši zaèano info datoteko od slike, ki je zraven batch fajla. dp0 pove lokacijo, kjer je batch fajl
-	%iviewDir%
+	%iviewDrive%
 	cd %iview%
-	i_view64.exe %img_loc% /info=%IWinfo%	
 ::	notepad %IWinfo%
+	
 	
 
 	
 :: Poisci sirino in visino ter ju shrani v spremenljivki 'width' in 'height'
 	for /f "tokens=4,6" %%a IN ('type %IWinfo% ^| find "Image dimensions"') do (set /a width=%%a) & (set /a height=%%b)
-	
-
-
 	
 ::Definicija za A standard - aspect ratio. 
 	set /a pocez=841
@@ -67,7 +67,6 @@
 	set /a dpi = %dpi% / %odrobu% * 100
 	set /a dpi = %dpi% / 10000
 
-	
 ::---LEZECE
 ::izracun stevilo pikslov po višini (da bo ratio 841*1189, A lezece)
 	set /a visina_lezece = %pocez% * %natancnost% / %podolgem% * %width%
@@ -78,7 +77,6 @@
 	set /a dpiL = %dpiL% / 117
 	set /a dpiL = %dpiL% / %odrobu% * 100
 	set /a dpiL = %dpiL% / 10000
-
 
 :: Make new directory - but where?
 		%img_drive%
@@ -91,7 +89,7 @@
 
 
 :: ---------- CUTTING AND SAVING THE IMAGES ----------
-	%iviewDir%
+	%iviewDrive%
 	cd %iview%
 
 	set /a x2 = 0
@@ -99,7 +97,7 @@
 		if %x2% leq %height% (
 			set /a x2 = x2 + %visina_lezece% - %prekrivanje%
 			i_view64.exe "%img_loc% /crop=(0,%x2%,%width%,%visina_lezece%) /dpi=(%dpiL%,%dpiL%) /convert=Lezece\Lezece_%x2%.jpg"
-			echo Lezece_%x2%.jpg naredil.
+			echo Lezece_%x2% naredil.
 			goto :while1
     )	
 	
@@ -108,7 +106,7 @@
 		if %x% leq %height% (
 			set /a x = x + %visina_pokoncno% - %prekrivanje%
 			i_view64.exe "%img_loc% /crop=(0,%x%,%width%,%visina_pokoncno%) /dpi=(%dpi%,%dpi%) /convert=Pokoncno\Pokoncno_%x%.jpg"
-			echo Pokoncno_%x%.jpg naredil.
+			echo Pokoncno_%x% naredil.
 			goto :while2
     )
 
